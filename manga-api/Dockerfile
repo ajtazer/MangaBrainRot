@@ -9,7 +9,7 @@ WORKDIR /app
 COPY requirements.txt .
 RUN pip install --no-cache-dir -r requirements.txt
 
-COPY main.py generator.py ./
+COPY main.py generator.py manganow_probe.py manganow_manga_index.json ./
 
 EXPOSE 8000
 

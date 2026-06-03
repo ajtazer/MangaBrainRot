@@ -10,6 +10,8 @@ import httpx
 from botocore.config import Config
 from PIL import Image
 
+import manganow_probe as manganow
+
 log = logging.getLogger("manga-api.generator")
 
 R2_ACCOUNT_ID = os.environ["R2_ACCOUNT_ID"]
@@ -36,6 +38,17 @@ def _r2_client():
 
 
 def _fetch_panels(chapter_id: str, work_dir: Path, max_panels: int) -> list[Path]:
+    """Download up to `max_panels` page images for a chapter.
+
+    Accepts either a MangaDex chapter UUID or a manganow chapter URL
+    (e.g. https://manganow.to/manga/<slug>/chapter-<n>).
+    """
+    if chapter_id.startswith("http"):
+        return _fetch_panels_manganow(chapter_id, work_dir, max_panels)
+    return _fetch_panels_mangadex(chapter_id, work_dir, max_panels)
+
+
+def _fetch_panels_mangadex(chapter_id: str, work_dir: Path, max_panels: int) -> list[Path]:
     with httpx.Client(timeout=30, follow_redirects=True) as c:
         r = c.get(f"{MANGADEX_API}/at-home/server/{chapter_id}")
         r.raise_for_status()
@@ -54,6 +67,34 @@ def _fetch_panels(chapter_id: str, work_dir: Path, max_panels: int) -> list[Path
             local.write_bytes(resp.content)
             paths.append(local)
         return paths
+
+
+def _fetch_panels_manganow(chapter_url: str, work_dir: Path, max_panels: int) -> list[Path]:
+    """Fetch panels from manganow.to (delegates to manganow_probe).
+
+    manganow image URLs require the chapter URL as Referer.
+    """
+    final_url, pages = manganow.resolve_chapter_pages(chapter_url)
+    if not pages:
+        raise RuntimeError(f"manganow: no pages resolved for {chapter_url}")
+    pages = pages[:max_panels]
+
+    headers = {
+        **manganow.DEFAULT_HEADERS,
+        "Referer": final_url,
+        "Accept": "image/avif,image/webp,image/apng,image/svg+xml,image/*,*/*;q=0.8",
+    }
+    paths = []
+    with httpx.Client(timeout=30, follow_redirects=True, headers=headers) as c:
+        for idx, url in enumerate(pages):
+            ext = manganow.ext_from_url(url, default=".jpg")
+            local = work_dir / f"panel_{idx:03d}{ext}"
+            log.info("fetch manganow panel %d/%d %s", idx + 1, len(pages), url)
+            resp = c.get(url)
+            resp.raise_for_status()
+            local.write_bytes(resp.content)
+            paths.append(local)
+    return paths
 
 
 def _resize_to_reel(panels: list[Path], work_dir: Path) -> list[Path]:

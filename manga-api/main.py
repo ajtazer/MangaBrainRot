@@ -11,6 +11,7 @@ from fastapi import BackgroundTasks, FastAPI, HTTPException
 from pydantic import BaseModel
 
 from generator import _upload_r2, generate_reel
+import manganow_probe as manganow
 
 logging.basicConfig(level=logging.INFO, format="%(asctime)s [%(levelname)s] %(message)s")
 log = logging.getLogger("manga-api")
@@ -86,6 +87,60 @@ async def upload_thumbnail(req: UploadThumbnailRequest):
     finally:
         import shutil
         shutil.rmtree(work_dir, ignore_errors=True)
+
+
+@app.get("/manganow/resolve")
+async def manganow_resolve(title: str, chapter: Optional[float] = None):
+    """Resolve a manga title (and optional chapter number) on manganow.to.
+
+    Picks the top search-index match silently. Without `chapter`, picks the
+    highest-numbered (latest) chapter. Returns fields compatible with the
+    legacy MangaDex flow: title, mangaId (slug), chapterId (chapter URL),
+    chapterNum, chapterUrl, mangaUrl.
+    """
+    title = (title or "").strip()
+    if not title:
+        raise HTTPException(status_code=400, detail="title is required")
+
+    results = await asyncio.to_thread(manganow.search_manga, title, 1, False)
+    if not results:
+        raise HTTPException(status_code=404, detail=f"no manga match for {title!r}")
+    top = results[0]
+
+    final_url, manga_id, chapters = await asyncio.to_thread(manganow.get_chapters, top["url"])
+    if not chapters:
+        raise HTTPException(status_code=404, detail=f"no chapters for {top['title']}")
+
+    if chapter is not None:
+        match = next(
+            (c for c in chapters if manganow._is_number(c["number"]) and float(c["number"]) == float(chapter)),
+            None,
+        )
+        if not match:
+            raise HTTPException(
+                status_code=404,
+                detail=f"chapter {chapter} not found for {top['title']}",
+            )
+        pick = match
+    else:
+        numbered = [c for c in chapters if manganow._is_number(c["number"])]
+        pick = max(numbered, key=lambda c: float(c["number"])) if numbered else chapters[0]
+
+    chapter_num = float(pick["number"]) if manganow._is_number(pick["number"]) else None
+    if chapter_num is not None and chapter_num.is_integer():
+        chapter_num = int(chapter_num)
+
+    log.info("manganow.resolve title=%r -> %s ch=%s", title, top["slug"], chapter_num)
+    return {
+        "title": top["title"],
+        "mangaId": top["slug"],
+        "chapterId": pick["url"],
+        "chapterNum": chapter_num,
+        "chapterUrl": pick["url"],
+        "mangaUrl": top["url"],
+        "mangaIdNumeric": manga_id,
+        "readingId": pick["id"],
+    }
 
 
 async def _callback(url: str, payload: dict):
