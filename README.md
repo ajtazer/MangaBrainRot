@@ -38,6 +38,7 @@ Per-chat pending state (TTL 5 min) lives in `WF-A`'s static data. `/cancel` abor
 | Service | Role |
 |---|---|
 | `manga-api` | FastAPI: MangaDex panel fetcher, ffmpeg renderer (1080×1920), R2 uploader. Hosts `/upload-thumbnail` for AI-generated cover images. |
+| `manganow/` | Standalone stdlib-only Python CLI that scrapes `manganow.to` (search, chapter list, page images). Intended as an alternate source feeding into `manga-api`. See `manganow/CONTEXT.md`. |
 
 ## Setup
 

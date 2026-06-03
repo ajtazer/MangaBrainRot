@@ -1,0 +1,4 @@
+__pycache__/
+*.pyc
+outputs/
+manganow_manga_index.json
