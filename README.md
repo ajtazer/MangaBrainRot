@@ -4,9 +4,9 @@ Telegram-driven Instagram Reels poster for MangaDex chapters with AI-generated c
 
 ## Demo
 
-<video src="https://github.com/ajtazer/MangaBrainRot/raw/main/media/promo-landscape.mp4" controls width="100%"></video>
+[![▶ Watch the 30s promo](media/promo-poster.jpg)](https://github.com/ajtazer/MangaBrainRot/blob/main/media/promo-landscape.mp4)
 
-> If the player doesn't load, [download/watch the promo here](media/promo-landscape.mp4).
+▶ **[Click the image above](https://github.com/ajtazer/MangaBrainRot/blob/main/media/promo-landscape.mp4)** to play the promo in GitHub's built-in video player.
 
 ## How it works (main branch)
 
