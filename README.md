@@ -2,6 +2,12 @@
 
 Telegram-driven Instagram Reels poster for MangaDex chapters with AI-generated clickbait thumbnails.
 
+## Demo
+
+<video src="https://github.com/ajtazer/MangaBrainRot/raw/main/media/promo-landscape.mp4" controls width="100%"></video>
+
+> If the player doesn't load, [download/watch the promo here](media/promo-landscape.mp4).
+
 ## How it works (main branch)
 
 ```
