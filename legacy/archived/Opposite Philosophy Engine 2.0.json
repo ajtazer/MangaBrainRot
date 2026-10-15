@@ -1,0 +1,1031 @@
+{
+  "name": "Opposite Philosophy Engine 2.0",
+  "nodes": [
+    {
+      "parameters": {},
+      "type": "n8n-nodes-base.manualTrigger",
+      "typeVersion": 1,
+      "position": [
+        -144,
+        240
+      ],
+      "id": "0c0bcf35-3e3f-4953-983b-5c7b4503cde9",
+      "name": "When clicking ‘Execute workflow’"
+    },
+    {
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            {
+              "id": "7041cb68-c0a8-49e9-b247-0551518a93d4",
+              "name": "target_username",
+              "value": "arjunkapoor",
+              "type": "string"
+            },
+            {
+              "id": "c129d669-0199-4ffa-af0c-688eda0444fb",
+              "name": "Whats The Big Idea Mayn?",
+              "value": "=You are a mental-health–aware philosophy writer.\n\nYour task is to FLIP dark, self-destructive, or nihilistic content into its grounded, self-respecting opposite.\n\nRULES:\n- Keep the transformation simple and direct.\n- Do not over-explain.\n- Do not sound preachy or dramatic.\n- Avoid toxic positivity.\n- Use calm, clear, emotionally mature language.\n- No emojis.\n- No slang.\n- No therapy or diagnostic language.\n\nWHAT TO DO:\n1. Flip the meaning of the content into a self-respecting, empowering perspective.\n2. Flip the hashtags into positive, grounded, life-affirming alternatives.\n   - Simple antonyms or close opposites are enough.\n   - Keep hashtags Instagram-appropriate.\n   - Limit to 5–10 hashtags.\n\nOUTPUT REQUIREMENTS (STRICT):\n\n- Return ONLY valid JSON\n- No markdown\n- No code blocks\n- No explanations\n- No surrounding text\n- No trailing commas\n- The response MUST start with { and end with }\n\nUse this exact structure:\n\n{\n  \"flipped_content\": \"string\",\n  \"flipped_tags\": [\"string\", \"string\"]\n}\n\nRules:\n- \"flipped_content\" must be a single plain text string\n- \"flipped_tags\" must be an array of 5–10 hashtag strings\n- Hashtags must include the # symbol\n- Do not escape characters unnecessarily\n- Do not include null, comments, or extra fields",
+              "type": "string"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4,
+      "position": [
+        80,
+        240
+      ],
+      "id": "d9c6fb13-cbc3-429f-8d3e-0f5fe48f74c5",
+      "name": "Config"
+    },
+    {
+      "parameters": {
+        "resource": "image",
+        "operation": "analyze",
+        "modelId": {
+          "__rl": true,
+          "value": "models/gemini-3-flash-preview",
+          "mode": "list",
+          "cachedResultName": "models/gemini-3-flash-preview"
+        },
+        "text": "Extract only the main narrative caption from this image. \n\nFollow these rules:\n1. Focus on the primary coherent sentence or paragraph.\n2. Ignore all background noise, labels on characters (like insults, names, or screaming text), and isolated words that are not part of the main statement.\n3. Merge line breaks into spaces to form a single, continuous sentence. Do not include '\\n' in the output.",
+        "imageUrls": "={{ $json.displayUrl }}",
+        "options": {}
+      },
+      "type": "@n8n/n8n-nodes-langchain.googleGemini",
+      "typeVersion": 1.1,
+      "position": [
+        -144,
+        -208
+      ],
+      "id": "b493cd56-35be-4686-bdd1-f7d40a4ef000",
+      "name": "POST OCR",
+      "credentials": {
+        "googlePalmApi": {
+          "id": "bVMfPAvuZLMt6yf8",
+          "name": "Google Gemini(PaLM) Api account"
+        }
+      },
+      "disabled": true
+    },
+    {
+      "parameters": {
+        "actorSource": "store",
+        "actorId": {
+          "__rl": true,
+          "value": "shu8hvrXbJbY3Eb9W",
+          "mode": "list",
+          "cachedResultName": "Instagram Scraper (apify/instagram-scraper)",
+          "cachedResultUrl": "https://console.apify.com/actors/shu8hvrXbJbY3Eb9W/input"
+        },
+        "customBody": "={\n  \"directUrls\": [\n    \"https://www.instagram.com/{{ $json.target_username }}/\"\n  ],\n  \"resultsLimit\": 20,\n  \"scrapePosts\": true,\n  \"scrapeReels\": false,\n  \"scrapeStories\": false,\n  \"scrapeCaptions\": true,\n  \"downloadPhotos\": false,\n  \"downloadVideos\": false,\n  \"proxyConfiguration\": {\n    \"useApifyProxy\": true\n  }\n}",
+        "authentication": "apifyOAuth2Api"
+      },
+      "type": "@apify/n8n-nodes-apify.apify",
+      "typeVersion": 1,
+      "position": [
+        304,
+        240
+      ],
+      "id": "1c5ecd2c-5af1-4f49-8b4e-014b0708d883",
+      "name": "Insta Scrap",
+      "credentials": {
+        "apifyOAuth2Api": {
+          "id": "sPjHuAkwuLbLR5Ab",
+          "name": "Apify account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "resource": "Datasets",
+        "datasetId": "={{ $json.defaultDatasetId }}",
+        "limit": 20,
+        "authentication": "apifyOAuth2Api"
+      },
+      "type": "@apify/n8n-nodes-apify.apify",
+      "typeVersion": 1,
+      "position": [
+        528,
+        240
+      ],
+      "id": "0a6fb9df-747b-422d-975a-51ae80e65677",
+      "name": "Scrap Data Fetch",
+      "credentials": {
+        "apifyOAuth2Api": {
+          "id": "sPjHuAkwuLbLR5Ab",
+          "name": "Apify account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "operation": "append",
+        "documentId": {
+          "__rl": true,
+          "value": "1mU-g1kiRG-yHeFuPG4YyrcRRl9PP8id5HaZV8KyLpqk",
+          "mode": "list",
+          "cachedResultName": "Opposite Philosophy Engine",
+          "cachedResultUrl": "https://docs.google.com/spreadsheets/d/1mU-g1kiRG-yHeFuPG4YyrcRRl9PP8id5HaZV8KyLpqk/edit?usp=drivesdk"
+        },
+        "sheetName": {
+          "__rl": true,
+          "value": 685795754,
+          "mode": "list",
+          "cachedResultName": "Raw Inputs",
+          "cachedResultUrl": "https://docs.google.com/spreadsheets/d/1mU-g1kiRG-yHeFuPG4YyrcRRl9PP8id5HaZV8KyLpqk/edit#gid=685795754"
+        },
+        "columns": {
+          "mappingMode": "defineBelow",
+          "value": {},
+          "matchingColumns": [
+            "id"
+          ],
+          "schema": [
+            {
+              "id": "id",
+              "displayName": "id",
+              "required": false,
+              "defaultMatch": true,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "type",
+              "displayName": "type",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "shortCode",
+              "displayName": "shortCode",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "caption",
+              "displayName": "caption",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "hashtags",
+              "displayName": "hashtags",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "mentions",
+              "displayName": "mentions",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "url",
+              "displayName": "url",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "commentsCount",
+              "displayName": "commentsCount",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "firstComment",
+              "displayName": "firstComment",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "latestComments",
+              "displayName": "latestComments",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "dimensionsHeight",
+              "displayName": "dimensionsHeight",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "dimensionsWidth",
+              "displayName": "dimensionsWidth",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "displayUrl",
+              "displayName": "displayUrl",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "images",
+              "displayName": "images",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "alt",
+              "displayName": "alt",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "likesCount",
+              "displayName": "likesCount",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "timestamp",
+              "displayName": "timestamp",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "childPosts",
+              "displayName": "childPosts",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "ownerFullName",
+              "displayName": "ownerFullName",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "ownerUsername",
+              "displayName": "ownerUsername",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "ownerId",
+              "displayName": "ownerId",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "isPinned",
+              "displayName": "isPinned",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "isCommentsDisabled",
+              "displayName": "isCommentsDisabled",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "inputUrl",
+              "displayName": "inputUrl",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            }
+          ],
+          "attemptToConvertTypes": false,
+          "convertFieldsToString": false
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.googleSheets",
+      "typeVersion": 4.7,
+      "position": [
+        -144,
+        -432
+      ],
+      "id": "cbda0692-c2e2-46af-b2c2-0401df6a9d0d",
+      "name": "Raw Data",
+      "credentials": {
+        "googleSheetsOAuth2Api": {
+          "id": "r58TGEcqJo8CCDmi",
+          "name": "Google Sheets account"
+        }
+      },
+      "disabled": true
+    },
+    {
+      "parameters": {
+        "operation": "append",
+        "documentId": {
+          "__rl": true,
+          "value": "1mU-g1kiRG-yHeFuPG4YyrcRRl9PP8id5HaZV8KyLpqk",
+          "mode": "list",
+          "cachedResultName": "Opposite Philosophy Engine",
+          "cachedResultUrl": "https://docs.google.com/spreadsheets/d/1mU-g1kiRG-yHeFuPG4YyrcRRl9PP8id5HaZV8KyLpqk/edit?usp=drivesdk"
+        },
+        "sheetName": {
+          "__rl": true,
+          "value": 941460989,
+          "mode": "list",
+          "cachedResultName": "Main",
+          "cachedResultUrl": "https://docs.google.com/spreadsheets/d/1mU-g1kiRG-yHeFuPG4YyrcRRl9PP8id5HaZV8KyLpqk/edit#gid=941460989"
+        },
+        "columns": {
+          "mappingMode": "defineBelow",
+          "value": {
+            "Content": "={{ $json.caption }}",
+            "Tags": "={{ $('Scrap Data Fetch').item.json.hashtags.map(tag => \"#\" + tag).join(\" \") }}",
+            "Image Link": "={{ $('Scrap Data Fetch').item.json.displayUrl }}",
+            "Opposite": "=",
+            "Opposite Tags": "=",
+            "ID": "={{ $('Scrap Data Fetch').item.json.shortCode }}",
+            "Top Comment": "={{ $json.latestComments[4].text }}"
+          },
+          "matchingColumns": [],
+          "schema": [
+            {
+              "id": "S.No",
+              "displayName": "S.No",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "ID",
+              "displayName": "ID",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "Content",
+              "displayName": "Content",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "Opposite",
+              "displayName": "Opposite",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "Tags",
+              "displayName": "Tags",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "Opposite Tags",
+              "displayName": "Opposite Tags",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "Image Link",
+              "displayName": "Image Link",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "Top Comment",
+              "displayName": "Top Comment",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            }
+          ],
+          "attemptToConvertTypes": false,
+          "convertFieldsToString": false
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.googleSheets",
+      "typeVersion": 4.7,
+      "position": [
+        752,
+        240
+      ],
+      "id": "4617168f-63be-4743-a652-afa81d6e09d4",
+      "name": "Main Data",
+      "credentials": {
+        "googleSheetsOAuth2Api": {
+          "id": "r58TGEcqJo8CCDmi",
+          "name": "Google Sheets account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "modelId": {
+          "__rl": true,
+          "value": "models/gemini-3-flash-preview",
+          "mode": "list",
+          "cachedResultName": "models/gemini-3-flash-preview"
+        },
+        "messages": {
+          "values": [
+            {
+              "content": "={{ $('Config').item.json['Whats The Big Idea Mayn?'] }}",
+              "role": "model"
+            },
+            {
+              "content": "=INPUT:\nContent: {{ $json.Content }}\n\nTags: {{ $json.Tags }}\n"
+            }
+          ]
+        },
+        "jsonOutput": true,
+        "builtInTools": {},
+        "options": {}
+      },
+      "type": "@n8n/n8n-nodes-langchain.googleGemini",
+      "typeVersion": 1.1,
+      "position": [
+        -144,
+        16
+      ],
+      "id": "7addabbf-a939-4c66-872f-b71c1cbd5410",
+      "name": "Flip Meme & Tags",
+      "credentials": {
+        "googlePalmApi": {
+          "id": "bVMfPAvuZLMt6yf8",
+          "name": "Google Gemini(PaLM) Api account"
+        }
+      },
+      "disabled": true
+    },
+    {
+      "parameters": {
+        "operation": "update",
+        "documentId": {
+          "__rl": true,
+          "value": "1mU-g1kiRG-yHeFuPG4YyrcRRl9PP8id5HaZV8KyLpqk",
+          "mode": "list",
+          "cachedResultName": "Opposite Philosophy Engine",
+          "cachedResultUrl": "https://docs.google.com/spreadsheets/d/1mU-g1kiRG-yHeFuPG4YyrcRRl9PP8id5HaZV8KyLpqk/edit?usp=drivesdk"
+        },
+        "sheetName": {
+          "__rl": true,
+          "value": 941460989,
+          "mode": "list",
+          "cachedResultName": "Main",
+          "cachedResultUrl": "https://docs.google.com/spreadsheets/d/1mU-g1kiRG-yHeFuPG4YyrcRRl9PP8id5HaZV8KyLpqk/edit#gid=941460989"
+        },
+        "columns": {
+          "mappingMode": "defineBelow",
+          "value": {
+            "ID": "={{ $('Scrap Data Fetch').item.json.shortCode }}",
+            "Opposite": "={{\nJSON.parse(\n  $json.content.parts[0].text\n    .replace(/^text\\s*/i, '')\n    .trim()\n).flipped_content\n}}\n",
+            "Opposite Tags": "={{\nJSON.parse(\n  $json.content.parts[0].text\n    .replace(/^text\\s*/i, '')\n    .trim()\n).flipped_tags\n}}\n"
+          },
+          "matchingColumns": [
+            "ID"
+          ],
+          "schema": [
+            {
+              "id": "ID",
+              "displayName": "ID",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "Content",
+              "displayName": "Content",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": true
+            },
+            {
+              "id": "Opposite",
+              "displayName": "Opposite",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "Tags",
+              "displayName": "Tags",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": true
+            },
+            {
+              "id": "Opposite Tags",
+              "displayName": "Opposite Tags",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "Image Link",
+              "displayName": "Image Link",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": true
+            },
+            {
+              "id": "row_number",
+              "displayName": "row_number",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "number",
+              "canBeUsedToMatch": true,
+              "readOnly": true,
+              "removed": true
+            }
+          ],
+          "attemptToConvertTypes": false,
+          "convertFieldsToString": false
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.googleSheets",
+      "typeVersion": 4.7,
+      "position": [
+        208,
+        16
+      ],
+      "id": "e7d82839-d438-431a-932a-89beaf6e1cc2",
+      "name": "Update row in sheet",
+      "credentials": {
+        "googleSheetsOAuth2Api": {
+          "id": "r58TGEcqJo8CCDmi",
+          "name": "Google Sheets account"
+        }
+      },
+      "disabled": true
+    },
+    {
+      "parameters": {
+        "operation": "text",
+        "text": "={{ $('Get row(s) in sheet').item.json['Top Comment'] }}",
+        "fontSize": "={{ $json._editText.fontSize }}",
+        "fontColor": "#FF0000",
+        "positionX": "=0",
+        "positionY": "={{ $json._editText.yOffset }}",
+        "options": {
+          "font": "/usr/share/fonts/truetype/msttcorefonts/Times_New_Roman_Bold_Italic.ttf"
+        }
+      },
+      "type": "n8n-nodes-base.editImage",
+      "typeVersion": 1,
+      "position": [
+        976,
+        464
+      ],
+      "id": "2d91720d-82f1-4cb8-ba64-d2f92d39d09f",
+      "name": "Edit Image"
+    },
+    {
+      "parameters": {
+        "resource": "image",
+        "node": "17841428171865158",
+        "imageUrl": "={{ $json.data.image.url }}",
+        "caption": "={{ $('Get row(s) in sheet').item.json['Top Comment'] }} \n\n\n{{ $('Get row(s) in sheet').item.json.Tags }}"
+      },
+      "type": "@mookielianhd/n8n-nodes-instagram.instagram",
+      "typeVersion": 1,
+      "position": [
+        1424,
+        464
+      ],
+      "id": "66870bb1-a3b0-4a97-ae9c-552b0963ea0c",
+      "name": "Publish",
+      "credentials": {
+        "instagramApi": {
+          "id": "nZoNjE2ek0umA6ny",
+          "name": "Instagram account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "https://api.imgbb.com/1/upload",
+        "sendQuery": true,
+        "queryParameters": {
+          "parameters": [
+            {
+              "name": "key",
+              "value": "875b9cd2dfd44a27392c4cffd15ce57a"
+            }
+          ]
+        },
+        "sendBody": true,
+        "contentType": "multipart-form-data",
+        "bodyParameters": {
+          "parameters": [
+            {
+              "parameterType": "formBinaryData",
+              "name": "image",
+              "inputDataFieldName": "=data"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.3,
+      "position": [
+        1200,
+        464
+      ],
+      "id": "446ece1d-1f57-404b-9f8a-a38e3d842085",
+      "name": "HTTP Request"
+    },
+    {
+      "parameters": {
+        "url": "={{ $json['Image Link'] }}",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.3,
+      "position": [
+        528,
+        464
+      ],
+      "id": "7c1b3aee-8211-4204-8e6b-db1b613dcd91",
+      "name": "HTTP Request1"
+    },
+    {
+      "parameters": {
+        "rule": {
+          "interval": [
+            {
+              "field": "minutes",
+              "minutesInterval": 30
+            }
+          ]
+        }
+      },
+      "type": "n8n-nodes-base.scheduleTrigger",
+      "typeVersion": 1.3,
+      "position": [
+        -144,
+        464
+      ],
+      "id": "3c086a5b-bd42-4f61-a935-1b2ffd2543df",
+      "name": "Schedule Trigger"
+    },
+    {
+      "parameters": {
+        "documentId": {
+          "__rl": true,
+          "value": "1mU-g1kiRG-yHeFuPG4YyrcRRl9PP8id5HaZV8KyLpqk",
+          "mode": "list",
+          "cachedResultName": "Opposite Philosophy Engine",
+          "cachedResultUrl": "https://docs.google.com/spreadsheets/d/1mU-g1kiRG-yHeFuPG4YyrcRRl9PP8id5HaZV8KyLpqk/edit?usp=drivesdk"
+        },
+        "sheetName": {
+          "__rl": true,
+          "value": 941460989,
+          "mode": "list",
+          "cachedResultName": "Main",
+          "cachedResultUrl": "https://docs.google.com/spreadsheets/d/1mU-g1kiRG-yHeFuPG4YyrcRRl9PP8id5HaZV8KyLpqk/edit#gid=941460989"
+        },
+        "filtersUI": {
+          "values": [
+            {
+              "lookupColumn": "S.No",
+              "lookupValue": "={{ $json.s_no -2}}"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.googleSheets",
+      "typeVersion": 4.7,
+      "position": [
+        304,
+        464
+      ],
+      "id": "4c35e1b7-8328-41fa-b9a0-719b6cfc990e",
+      "name": "Get row(s) in sheet",
+      "credentials": {
+        "googleSheetsOAuth2Api": {
+          "id": "r58TGEcqJo8CCDmi",
+          "name": "Google Sheets account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "jsCode": "const now = new Date();\n\n// Number of 30-minute slots since epoch\nconst slot = Math.floor(now.getTime() / (30 * 60 * 1000));\n\n// Cycle through 1–23\nconst s_no = (slot % 23) + 1;\n\nreturn [{\n  json: { s_no }\n}];"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        80,
+        464
+      ],
+      "id": "e84250a4-c67b-4447-8437-77c7a9bbce6d",
+      "name": "alzehimers"
+    },
+    {
+      "parameters": {
+        "jsCode": "return items.map(item => {\n  const msg = item.json.message || {};\n  const photos = msg.photo || [];\n\n  const text =\n    msg.from?.first_name ||\n    item.json.text ||\n    \"\";\n\n  // Largest Telegram image\n  const p = photos[photos.length - 1] || {};\n  const width = p.width || 1024;\n  const height = p.height || 1024;\n\n  /* ---------- FONT SIZE (RESPONSIVE) ---------- */\n  let fontSize = Math.round(width * 0.10);\n  fontSize = Math.max(32, Math.min(fontSize, 260));\n\n  /* ---------- TEXT WIDTH ESTIMATION ---------- */\n  // Avg character width ≈ 0.6 × fontSize (works well for bold fonts)\n  const avgCharWidth = fontSize * 0.6;\n  const maxLineLength = 80;\n  const longestLineChars = Math.min(text.length, maxLineLength);\n  const textWidth = longestLineChars * avgCharWidth;\n\n  /* ---------- X CENTER (PIXELS) ---------- */\n  let xOffset = Math.round((width / 2) - (textWidth / 2));\n  xOffset = Math.max(0, xOffset);\n\n  /* ---------- MULTILINE HEIGHT ---------- */\n  const lines = Math.max(1, Math.ceil(text.length / maxLineLength));\n  const lineHeight = fontSize * 1.2;\n  const textHeight = lines * lineHeight;\n\n  /* ---------- Y CENTER (PIXELS) ---------- */\n  let yOffset = Math.round((height / 2) - (textHeight / 2));\n  yOffset = Math.max(0, yOffset);\n\n  item.json._editText = {\n    fontSize,\n    xOffset,\n    yOffset\n  };\n\n  return item;\n});\n"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        752,
+        464
+      ],
+      "id": "76cffa92-7a9b-48ed-8164-eabceac8a7ff",
+      "name": "Text Size"
+    }
+  ],
+  "pinData": {},
+  "connections": {
+    "When clicking ‘Execute workflow’": {
+      "main": [
+        [
+          {
+            "node": "Config",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Config": {
+      "main": [
+        [
+          {
+            "node": "Insta Scrap",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "POST OCR": {
+      "main": [
+        []
+      ]
+    },
+    "Insta Scrap": {
+      "main": [
+        [
+          {
+            "node": "Scrap Data Fetch",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Scrap Data Fetch": {
+      "main": [
+        [
+          {
+            "node": "Main Data",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Main Data": {
+      "main": [
+        []
+      ]
+    },
+    "Flip Meme & Tags": {
+      "main": [
+        [
+          {
+            "node": "Update row in sheet",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Edit Image": {
+      "main": [
+        [
+          {
+            "node": "HTTP Request",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "HTTP Request": {
+      "main": [
+        [
+          {
+            "node": "Publish",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Schedule Trigger": {
+      "main": [
+        [
+          {
+            "node": "alzehimers",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Get row(s) in sheet": {
+      "main": [
+        [
+          {
+            "node": "HTTP Request1",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "alzehimers": {
+      "main": [
+        [
+          {
+            "node": "Get row(s) in sheet",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "HTTP Request1": {
+      "main": [
+        [
+          {
+            "node": "Text Size",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Text Size": {
+      "main": [
+        [
+          {
+            "node": "Edit Image",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "active": true,
+  "settings": {
+    "executionOrder": "v1",
+    "availableInMCP": false
+  },
+  "versionId": "fc0525f8-9300-44a2-88c0-4dabd07d2d4e",
+  "meta": {
+    "templateCredsSetupCompleted": true,
+    "instanceId": "403ce3682ca931f437b6dd8ae8086cb14a7dbf590c9eda5e445fae63931bc1c6"
+  },
+  "id": "hp6GqyMR4S7DhHKlPXmr4",
+  "tags": []
+}

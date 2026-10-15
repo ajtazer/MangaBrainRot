@@ -1,0 +1,507 @@
+{
+    "name": "Manga Reel Generator v3",
+    "nodes": [
+        {
+            "parameters": {
+                "updates": [
+                    "message"
+                ],
+                "additionalFields": {}
+            },
+            "id": "telegram-trigger",
+            "name": "Telegram Trigger",
+            "type": "n8n-nodes-base.telegramTrigger",
+            "typeVersion": 1.1,
+            "position": [
+                -1200,
+                300
+            ],
+            "credentials": {
+                "telegramApi": {
+                    "id": "TazerGPT Bot",
+                    "name": "TazerGPT Bot"
+                }
+            }
+        },
+        {
+            "parameters": {
+                "jsCode": "const message = $input.first().json.message;\nif (!message) return [];\n\nconst messageDate = message.date;\nconst now = Math.floor(Date.now() / 1000);\n\nif (now - messageDate > 60) return [];\n\nreturn [{ json: $input.first().json }];"
+            },
+            "id": "filter-old-messages",
+            "name": "Filter Old Messages",
+            "type": "n8n-nodes-base.code",
+            "typeVersion": 2,
+            "position": [
+                -980,
+                300
+            ]
+        },
+        {
+            "parameters": {
+                "conditions": {
+                    "options": {
+                        "caseSensitive": false,
+                        "leftValue": "",
+                        "typeValidation": "loose"
+                    },
+                    "conditions": [
+                        {
+                            "id": "mangadex-check",
+                            "leftValue": "={{ $json.message.text }}",
+                            "rightValue": "mangadex.org",
+                            "operator": {
+                                "type": "string",
+                                "operation": "contains"
+                            }
+                        }
+                    ],
+                    "combinator": "and"
+                },
+                "options": {}
+            },
+            "id": "is-mangadex-link",
+            "name": "Is MangaDex Link?",
+            "type": "n8n-nodes-base.if",
+            "typeVersion": 2,
+            "position": [
+                -760,
+                300
+            ]
+        },
+        {
+            "parameters": {
+                "chatId": "={{ $json.message.chat.id }}",
+                "text": "❌ Invalid input. Please send a MangaDex chapter link.\n\nExample: https://mangadex.org/chapter/abc123-uuid",
+                "additionalFields": {}
+            },
+            "id": "invalid-input-msg",
+            "name": "Invalid Input Message",
+            "type": "n8n-nodes-base.telegram",
+            "typeVersion": 1.2,
+            "position": [
+                -540,
+                480
+            ],
+            "credentials": {
+                "telegramApi": {
+                    "id": "TazerGPT Bot",
+                    "name": "TazerGPT Bot"
+                }
+            }
+        },
+        {
+            "parameters": {
+                "jsCode": "const message = $input.first().json.message.text;\nconst match = message.match(/mangadex\\.org\\/chapter\\/([a-f0-9-]+)/i);\n\nif (!match) throw new Error('Could not extract chapter ID');\n\n// --- CONFIGURATION ---\nconst bgmUrl = \"https://pub-3edc2a55a5af4b14b554c8ed89ceadb7.r2.dev/bgm/Banda%20Kaam%20Ka%20pagalall.com.mp3\"; \nconst outroUrl = \"https://pub-3edc2a55a5af4b14b554c8ed89ceadb7.r2.dev/outro.jpg\"; \n// ---------------------\n\nreturn [{\n  json: {\n    chapterId: match[1],\n    chatId: String($input.first().json.message.chat.id),\n    bgmUrl: bgmUrl || \"\",\n    outroUrl: outroUrl || null\n  }\n}];"
+            },
+            "id": "extract-chapter-id",
+            "name": "Extract Chapter ID",
+            "type": "n8n-nodes-base.code",
+            "typeVersion": 2,
+            "position": [
+                -540,
+                300
+            ]
+        },
+        {
+            "parameters": {
+                "chatId": "={{ $json.chatId }}",
+                "text": "=🚀 *Starting Manga Reel Generator*\n\n📖 Chapter: `{{ $json.chapterId }}`\n⏳ *Initiating video generation...*\n_(This usually takes about 60-90 seconds)_",
+                "additionalFields": {
+                    "parse_mode": "Markdown"
+                }
+            },
+            "id": "start-notification",
+            "name": "Start Notification",
+            "type": "n8n-nodes-base.telegram",
+            "typeVersion": 1.2,
+            "position": [
+                -320,
+                300
+            ],
+            "credentials": {
+                "telegramApi": {
+                    "id": "TazerGPT Bot",
+                    "name": "TazerGPT Bot"
+                }
+            }
+        },
+        {
+            "parameters": {
+                "method": "POST",
+                "url": "https://ajtazer-manga-brainrot.hf.space/gradio_api/call/gradio_generate",
+                "sendBody": true,
+                "specifyBody": "json",
+                "jsonBody": "={\n  \"data\": [\n    \"{{ $json.chapterId }}\",\n    \"{{ $json.bgmUrl }}\",\n    {{ $json.outroUrl ? '\"' + $json.outroUrl + '\"' : 'null' }}\n  ]\n}",
+                "options": {
+                    "timeout": 30000
+                }
+            },
+            "id": "initiate-generation",
+            "name": "Initiate Generation",
+            "type": "n8n-nodes-base.httpRequest",
+            "typeVersion": 4.2,
+            "position": [
+                -100,
+                300
+            ]
+        },
+        {
+            "parameters": {
+                "amount": 90,
+                "unit": "seconds"
+            },
+            "id": "wait-for-render",
+            "name": "Wait for Render",
+            "type": "n8n-nodes-base.wait",
+            "typeVersion": 1,
+            "position": [
+                120,
+                300
+            ]
+        },
+        {
+            "parameters": {
+                "url": "=https://ajtazer-manga-brainrot.hf.space/gradio_api/call/gradio_generate/{{ $('Initiate Generation').first().json.event_id }}",
+                "options": {
+                    "timeout": 30000
+                }
+            },
+            "id": "get-result",
+            "name": "Get Result",
+            "type": "n8n-nodes-base.httpRequest",
+            "typeVersion": 4.2,
+            "position": [
+                340,
+                300
+            ]
+        },
+        {
+            "parameters": {
+                "jsCode": "const rawOutput = $input.first().json.data || $input.first().text || '';\n\n// Parse SSE format\nconst dataMatch = rawOutput.match(/data:\\s*\\[([^\\]]+)\\]/g);\nif (dataMatch && dataMatch.length > 0) {\n  const lastData = dataMatch[dataMatch.length - 1];\n  const parsed = JSON.parse(lastData.replace('data: ', ''));\n  const videoData = parsed[1];\n  return [{\n    json: {\n      status: parsed[0],\n      video_url: videoData?.url || videoData,\n      chatId: $('Extract Chapter ID').first().json.chatId,\n      chapterId: $('Extract Chapter ID').first().json.chapterId\n    }\n  }];\n}\n\n// Fallback if no match\nreturn [{\n  json: {\n    error: 'Could not parse result',\n    raw: rawOutput,\n    chatId: $('Extract Chapter ID').first().json.chatId\n  }\n}];"
+            },
+            "id": "parse-result",
+            "name": "Parse Result",
+            "type": "n8n-nodes-base.code",
+            "typeVersion": 2,
+            "position": [
+                560,
+                300
+            ]
+        },
+        {
+            "parameters": {
+                "conditions": {
+                    "options": {
+                        "caseSensitive": true,
+                        "leftValue": "",
+                        "typeValidation": "loose"
+                    },
+                    "conditions": [
+                        {
+                            "id": "has-video-url",
+                            "leftValue": "={{ $json.video_url }}",
+                            "rightValue": "",
+                            "operator": {
+                                "type": "string",
+                                "operation": "isNotEmpty"
+                            }
+                        }
+                    ],
+                    "combinator": "and"
+                },
+                "options": {}
+            },
+            "id": "check-success",
+            "name": "Video Generated?",
+            "type": "n8n-nodes-base.if",
+            "typeVersion": 2,
+            "position": [
+                780,
+                300
+            ]
+        },
+        {
+            "parameters": {
+                "chatId": "={{ $json.chatId }}",
+                "text": "=🎉 *Video Ready!*\n\n📺 [Watch Video]({{ $json.video_url }})\n\n🚀 Publishing to Instagram...",
+                "additionalFields": {
+                    "parse_mode": "Markdown"
+                }
+            },
+            "id": "video-ready-msg",
+            "name": "Video Ready Notification",
+            "type": "n8n-nodes-base.telegram",
+            "typeVersion": 1.2,
+            "position": [
+                1000,
+                300
+            ],
+            "credentials": {
+                "telegramApi": {
+                    "id": "TazerGPT Bot",
+                    "name": "TazerGPT Bot"
+                }
+            }
+        },
+        {
+            "parameters": {
+                "chatId": "={{ $json.chatId }}",
+                "text": "=❌ *Video Generation Failed*\n\n**Error Details:**\n`{{ $json.error || $json.status || 'Unknown error' }}`\n\n_Please check the n8n execution logs._",
+                "additionalFields": {
+                    "parse_mode": "Markdown"
+                }
+            },
+            "id": "error-msg",
+            "name": "Error Notification",
+            "type": "n8n-nodes-base.telegram",
+            "typeVersion": 1.2,
+            "position": [
+                1000,
+                480
+            ],
+            "credentials": {
+                "telegramApi": {
+                    "id": "TazerGPT Bot",
+                    "name": "TazerGPT Bot"
+                }
+            }
+        },
+        {
+            "parameters": {
+                "resource": "reels",
+                "operation": "publish",
+                "node": "1451044006588947",
+                "graphApiVersion": "v22.0",
+                "videoUrl": "={{ $json.video_url }}",
+                "caption": "New manga chapter! 📖✨\n\n#manga #anime #mangareels #otaku #webtoon"
+            },
+            "id": "instagram-publish",
+            "name": "Publish to Instagram",
+            "type": "@mookielianhd/n8n-nodes-instagram.instagram",
+            "typeVersion": 1,
+            "position": [
+                1220,
+                300
+            ],
+            "credentials": {
+                "instagramApi": {
+                    "id": "Instagram account",
+                    "name": "Instagram account"
+                }
+            },
+            "onError": "continueErrorOutput"
+        },
+        {
+            "parameters": {
+                "chatId": "={{ $('Extract Chapter ID').first().json.chatId }}",
+                "text": "=🎊 *ALL DONE!*\n\n📖 Chapter: `{{ $('Extract Chapter ID').first().json.chapterId }}`\n📺 Video: {{ $('Parse Result').first().json.video_url }}\n✅ Published to Instagram!",
+                "additionalFields": {
+                    "parse_mode": "Markdown"
+                }
+            },
+            "id": "final-success-msg",
+            "name": "Final Success Message",
+            "type": "n8n-nodes-base.telegram",
+            "typeVersion": 1.2,
+            "position": [
+                1440,
+                300
+            ],
+            "credentials": {
+                "telegramApi": {
+                    "id": "TazerGPT Bot",
+                    "name": "TazerGPT Bot"
+                }
+            }
+        },
+        {
+            "parameters": {
+                "chatId": "={{ $('Extract Chapter ID').first().json.chatId }}",
+                "text": "=⚠️ *Instagram Publish Failed*\n\nVideo URL: {{ $('Parse Result').first().json.video_url }}\n\nYou can manually upload this video.",
+                "additionalFields": {
+                    "parse_mode": "Markdown"
+                }
+            },
+            "id": "instagram-error-msg",
+            "name": "Instagram Error",
+            "type": "n8n-nodes-base.telegram",
+            "typeVersion": 1.2,
+            "position": [
+                1440,
+                480
+            ],
+            "credentials": {
+                "telegramApi": {
+                    "id": "TazerGPT Bot",
+                    "name": "TazerGPT Bot"
+                }
+            }
+        }
+    ],
+    "connections": {
+        "Telegram Trigger": {
+            "main": [
+                [
+                    {
+                        "node": "Filter Old Messages",
+                        "type": "main",
+                        "index": 0
+                    }
+                ]
+            ]
+        },
+        "Filter Old Messages": {
+            "main": [
+                [
+                    {
+                        "node": "Is MangaDex Link?",
+                        "type": "main",
+                        "index": 0
+                    }
+                ]
+            ]
+        },
+        "Is MangaDex Link?": {
+            "main": [
+                [
+                    {
+                        "node": "Extract Chapter ID",
+                        "type": "main",
+                        "index": 0
+                    }
+                ],
+                [
+                    {
+                        "node": "Invalid Input Message",
+                        "type": "main",
+                        "index": 0
+                    }
+                ]
+            ]
+        },
+        "Extract Chapter ID": {
+            "main": [
+                [
+                    {
+                        "node": "Start Notification",
+                        "type": "main",
+                        "index": 0
+                    }
+                ]
+            ]
+        },
+        "Start Notification": {
+            "main": [
+                [
+                    {
+                        "node": "Initiate Generation",
+                        "type": "main",
+                        "index": 0
+                    }
+                ]
+            ]
+        },
+        "Initiate Generation": {
+            "main": [
+                [
+                    {
+                        "node": "Wait for Render",
+                        "type": "main",
+                        "index": 0
+                    }
+                ]
+            ]
+        },
+        "Wait for Render": {
+            "main": [
+                [
+                    {
+                        "node": "Get Result",
+                        "type": "main",
+                        "index": 0
+                    }
+                ]
+            ]
+        },
+        "Get Result": {
+            "main": [
+                [
+                    {
+                        "node": "Parse Result",
+                        "type": "main",
+                        "index": 0
+                    }
+                ]
+            ]
+        },
+        "Parse Result": {
+            "main": [
+                [
+                    {
+                        "node": "Video Generated?",
+                        "type": "main",
+                        "index": 0
+                    }
+                ]
+            ]
+        },
+        "Video Generated?": {
+            "main": [
+                [
+                    {
+                        "node": "Video Ready Notification",
+                        "type": "main",
+                        "index": 0
+                    }
+                ],
+                [
+                    {
+                        "node": "Error Notification",
+                        "type": "main",
+                        "index": 0
+                    }
+                ]
+            ]
+        },
+        "Video Ready Notification": {
+            "main": [
+                [
+                    {
+                        "node": "Publish to Instagram",
+                        "type": "main",
+                        "index": 0
+                    }
+                ]
+            ]
+        },
+        "Publish to Instagram": {
+            "main": [
+                [
+                    {
+                        "node": "Final Success Message",
+                        "type": "main",
+                        "index": 0
+                    }
+                ],
+                [
+                    {
+                        "node": "Instagram Error",
+                        "type": "main",
+                        "index": 0
+                    }
+                ]
+            ]
+        },
+        "Instagram Error": {
+            "main": [
+                [
+                    {
+                        "node": "Final Success Message",
+                        "type": "main",
+                        "index": 0
+                    }
+                ]
+            ]
+        }
+    }
+}

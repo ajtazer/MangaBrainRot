@@ -1,0 +1,456 @@
+{
+  "name": "Manga Reel Generator v6",
+  "nodes": [
+    {
+      "parameters": {
+        "updates": [
+          "message"
+        ],
+        "additionalFields": {}
+      },
+      "id": "b0069610-4d1c-4d9e-a1c1-289d107fd540",
+      "name": "Telegram Trigger",
+      "type": "n8n-nodes-base.telegramTrigger",
+      "typeVersion": 1.1,
+      "position": [
+        336,
+        -112
+      ],
+      "webhookId": "6b812f61-b48e-4c2e-8266-431397975a65",
+      "credentials": {
+        "telegramApi": {
+          "id": "WzY2whKO1vS85cge",
+          "name": "MangaBrainRotBot"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "jsCode": "const item = $input.first()?.json;\nconst message = item?.message || item?.edited_message;\n\nif (!message || !message.text) return [];\n\nconst messageDate = message.date;\nconst now = Math.floor(Date.now() / 1000);\n\n// Use 24h window (86400s) to allow testing while filtering truly ancient messages\nif (Math.abs(now - messageDate) > 86400) return [];\n\nreturn [{ json: item }];"
+      },
+      "id": "65497b59-f8a3-459e-8018-fbe31a3d7d6d",
+      "name": "Filter Old Messages",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        560,
+        -112
+      ]
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": false,
+            "leftValue": "",
+            "typeValidation": "loose"
+          },
+          "conditions": [
+            {
+              "id": "check",
+              "leftValue": "={{ $json.message.text }}",
+              "rightValue": "mangadex.org",
+              "operator": {
+                "type": "string",
+                "operation": "contains"
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "id": "a55ed748-b57c-4c0f-ac4b-ad5ead1c6993",
+      "name": "Is MangaDex?",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2,
+      "position": [
+        784,
+        -112
+      ]
+    },
+    {
+      "parameters": {
+        "jsCode": "const message = $input.first().json.message.text;\nconst match = message.match(/mangadex\\.org\\/chapter\\/([a-f0-9-]+)/i);\n\nif (!match) throw new Error('Could not extract chapter ID');\n\n// --- BGM LIBRARY (all tracks) ---\nconst allBgmTracks = [\n  \"https://pub-3edc2a55a5af4b14b554c8ed89ceadb7.r2.dev/bgm/hype1_imagination.mp3\",\n  \"https://pub-3edc2a55a5af4b14b554c8ed89ceadb7.r2.dev/bgm/hype2_sakura_mitsutsuki.mp3\",\n  \"https://pub-3edc2a55a5af4b14b554c8ed89ceadb7.r2.dev/bgm/hype3_gurenge.mp3\",\n  \"https://pub-3edc2a55a5af4b14b554c8ed89ceadb7.r2.dev/bgm/hype4_kick_back.mp3\",\n  \"https://pub-3edc2a55a5af4b14b554c8ed89ceadb7.r2.dev/bgm/hype5_kaikai_kitan.mp3\",\n  \"https://pub-3edc2a55a5af4b14b554c8ed89ceadb7.r2.dev/bgm/love1_ai_no_scenario.mp3\",\n  \"https://pub-3edc2a55a5af4b14b554c8ed89ceadb7.r2.dev/bgm/love2_pride_kakumei.mp3\",\n  \"https://pub-3edc2a55a5af4b14b554c8ed89ceadb7.r2.dev/bgm/sad1_dakara_boku.mp3\",\n  \"https://pub-3edc2a55a5af4b14b554c8ed89ceadb7.r2.dev/bgm/sad2_ref_rain.mp3\",\n  \"https://pub-3edc2a55a5af4b14b554c8ed89ceadb7.r2.dev/bgm/sad3_yukitoki.mp3\",\n  \"https://pub-3edc2a55a5af4b14b554c8ed89ceadb7.r2.dev/bgm/sad4_kataomoi.mp3\",\n  \"https://pub-3edc2a55a5af4b14b554c8ed89ceadb7.r2.dev/bgm/chill1_hitchcock.mp3\",\n  \"https://pub-3edc2a55a5af4b14b554c8ed89ceadb7.r2.dev/bgm/chill2_vidro_moyou.mp3\",\n  \"https://pub-3edc2a55a5af4b14b554c8ed89ceadb7.r2.dev/bgm/chill3_sparkle.mp3\",\n  \"https://pub-3edc2a55a5af4b14b554c8ed89ceadb7.r2.dev/bgm/epic1_barricades.mp3\",\n  \"https://pub-3edc2a55a5af4b14b554c8ed89ceadb7.r2.dev/bgm/epic2_homura.mp3\",\n  \"https://pub-3edc2a55a5af4b14b554c8ed89ceadb7.r2.dev/bgm/epic3_boy.mp3\",\n  \"https://pub-3edc2a55a5af4b14b554c8ed89ceadb7.r2.dev/bgm/epic4_tot_musica.mp3\",\n  \"https://pub-3edc2a55a5af4b14b554c8ed89ceadb7.r2.dev/bgm/Banda%20Kaam%20Ka%20pagalall.com.mp3\"\n];\n\n// Random BGM selection\nconst bgmUrl = allBgmTracks[Math.floor(Math.random() * allBgmTracks.length)];\nconst bgmName = bgmUrl.split('/').pop().replace('.mp3','').replace(/%20/g,' ');\nconst outroUrl = \"https://pub-3edc2a55a5af4b14b554c8ed89ceadb7.r2.dev/outro.jpg\";\n\nreturn [{\n  json: {\n    chapterId: match[1],\n    chatId: String($input.first().json.message.chat.id),\n    bgmUrl: bgmUrl,\n    bgmName: bgmName,\n    outroUrl: outroUrl\n  }\n}];"
+      },
+      "id": "266dc9e5-296e-4227-b57a-751d2a5924f9",
+      "name": "Extract Chapter ID",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        1008,
+        -112
+      ]
+    },
+    {
+      "parameters": {
+        "chatId": "={{ $json.chatId }}",
+        "text": "=🎬 *Generating Your Reel...*\n\n📖 Chapter: `{{ $json.chapterId }}`\n🎵 Soundtrack: _{{ $json.bgmName }}_\n\n⏳ ~90 seconds\n💡 Grab some snacks!",
+        "additionalFields": {
+          "parse_mode": "Markdown"
+        }
+      },
+      "id": "c17d26eb-7fa7-491d-bfe7-d0ea4102cd18",
+      "name": "Start Notification",
+      "type": "n8n-nodes-base.telegram",
+      "typeVersion": 1.2,
+      "position": [
+        1232,
+        -112
+      ],
+      "webhookId": "2811cd53-9abc-40a2-b8d5-6cb5eec7c0f8",
+      "credentials": {
+        "telegramApi": {
+          "id": "WzY2whKO1vS85cge",
+          "name": "MangaBrainRotBot"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "https://ajtazer-manga-brainrot.hf.space/gradio_api/call/gradio_generate",
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={\"data\": [\"{{ $('Extract Chapter ID').first().json.chapterId }}\", \"{{ $('Extract Chapter ID').first().json.bgmUrl }}\", \"{{ $('Extract Chapter ID').first().json.outroUrl }}\"]}",
+        "options": {
+          "timeout": 30000
+        }
+      },
+      "id": "f0aea521-6e88-44bb-8e37-ee0c43e0873f",
+      "name": "Initiate Generation",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        1456,
+        -112
+      ]
+    },
+    {
+      "parameters": {
+        "amount": 90,
+        "unit": "seconds"
+      },
+      "id": "b839788f-e2d6-43da-adde-1dd1cd99bbd5",
+      "name": "Wait",
+      "type": "n8n-nodes-base.wait",
+      "typeVersion": 1,
+      "position": [
+        1680,
+        -112
+      ],
+      "webhookId": "7f5e1a48-9f51-45ad-b936-10e87564a910"
+    },
+    {
+      "parameters": {
+        "url": "=https://ajtazer-manga-brainrot.hf.space/gradio_api/call/gradio_generate/{{ $('Initiate Generation').first().json.event_id }}",
+        "options": {
+          "timeout": 30000
+        }
+      },
+      "id": "edcf22cb-67a2-4dc5-a363-1ecd1b293f3a",
+      "name": "Get Result",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        1904,
+        -112
+      ]
+    },
+    {
+      "parameters": {
+        "jsCode": "const raw = $input.first().json.data || '';\nconst m = raw.match(/data:\\s*\\[([^\\]]+)\\]/g);\nif (m && m.length) {\n  const p = JSON.parse(m[m.length-1].replace('data: ',''));\n  const v = p[1];\n  const s = p[0] || '';\n  const tm = s.match(/Done!\\s*(.+?)\\s*-\\s*Ch\\./i);\n  const cm = s.match(/Ch\\.?(\\d+)/i);\n  \n  const mangaTitle = tm ? tm[1].trim() : 'Manga';\n  const chapterNum = cm ? cm[1] : '';\n  \n  // Extract video URL - handle both string and object formats\n  let videoUrl = '';\n  if (typeof v === 'string') {\n    videoUrl = v;\n  } else if (v && v.url) {\n    videoUrl = v.url;\n  } else if (v && v.video && v.video.url) {\n    videoUrl = v.video.url;\n  }\n  \n  // Generate SEO-optimized hashtag from manga title\n  const mangaHashtag = mangaTitle.replace(/[^a-zA-Z0-9]/g, '').toLowerCase();\n  \n  // Enhanced Instagram Caption with SEO\n  const instagramCaption = `${mangaTitle} - Chapter ${chapterNum} ✨\n\n🔥 New chapter just dropped! Watch the manga come to life!\n\n📖 Manga: ${mangaTitle}\n📑 Chapter: ${chapterNum}\n\n💬 Follow for daily manga reels!\n\n#manga #anime #mangareels #${mangaHashtag} #otaku #webtoon #mangatok #animeedit #manhwa #mangatiktok #animereels #japanmanga #mangaart #mangapanel #animefan #webtoonrecommendation #mangalover #animelovers`;\n\n  // Enhanced YouTube Title & Description with #Shorts\n  const youtubeTitle = `${mangaTitle} - Chapter ${chapterNum} | Manga Reel #Shorts #Manga #Anime`;\n  \n  const youtubeDescription = `${mangaTitle} - Chapter ${chapterNum} - Watch the manga come to life!\n\n🔥 New manga chapter animated as a vertical reel!\n\n📖 Manga: ${mangaTitle}\n📑 Chapter: ${chapterNum}\n\n👍 Like & Subscribe for more manga content!\n🔔 Turn on notifications to never miss a upload!\n\n━━━━━━━━━━━━━━━━━━━━━━━━━━\n📌 Tags:\n#Shorts #manga #anime #${mangaHashtag} #mangareels #otaku #webtoon #mangatok #animeedit #manhwa #mangatiktok #animereels #japanmanga #mangaart #animefan #webtoonrecommendation #animeshorts #mangashorts\n━━━━━━━━━━━━━━━━━━━━━━━━━━\n\n⚠️ All content belongs to the original manga creators. This video is for entertainment and promotional purposes only.`;\n\n  return [{\n    json: {\n      status: s,\n      mangaTitle: mangaTitle,\n      chapterNum: chapterNum,\n      video_url: videoUrl,\n      chatId: $('Extract Chapter ID').first().json.chatId,\n      bgmName: $('Extract Chapter ID').first().json.bgmName,\n      instagramCaption: instagramCaption,\n      youtubeTitle: youtubeTitle,\n      youtubeDescription: youtubeDescription\n    }\n  }];\n}\nreturn [{json: {error: 'Parse failed', chatId: $('Extract Chapter ID').first().json.chatId}}];"
+      },
+      "id": "124afc38-ca8f-4545-aae8-38b6c5105393",
+      "name": "Parse Result",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        2128,
+        -112
+      ]
+    },
+    {
+      "parameters": {
+        "chatId": "={{ $json.chatId }}",
+        "text": "=🎉 *Your Reel is Ready!*\n\n📖 *{{ $json.mangaTitle }}* - Ch.{{ $json.chapterNum }}\n🎵 _{{ $json.bgmName }}_\n\n📺 [Watch Video]({{ $json.video_url }})\n\n📸 Publishing to Instagram & YouTube...",
+        "additionalFields": {
+          "parse_mode": "Markdown"
+        }
+      },
+      "id": "715d9c60-fdfa-498c-ac1a-c9384c2c77bf",
+      "name": "Video Ready",
+      "type": "n8n-nodes-base.telegram",
+      "typeVersion": 1.2,
+      "position": [
+        2352,
+        -112
+      ],
+      "webhookId": "d1521a04-2d76-474d-b1b2-dc451c353bb5",
+      "credentials": {
+        "telegramApi": {
+          "id": "WzY2whKO1vS85cge",
+          "name": "MangaBrainRotBot"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "resource": "reels",
+        "node": "17841428171865158",
+        "videoUrl": "={{ $('Parse Result').item.json.video_url }}",
+        "caption": "={{ $('Parse Result').item.json.instagramCaption }}"
+      },
+      "id": "48e7595f-2027-4f5c-a547-cf937aa9a789",
+      "name": "Publish to Instagram",
+      "type": "@mookielianhd/n8n-nodes-instagram.instagram",
+      "typeVersion": 1,
+      "position": [
+        2576,
+        -112
+      ],
+      "credentials": {
+        "instagramApi": {
+          "id": "nZoNjE2ek0umA6ny",
+          "name": "Instagram account"
+        }
+      },
+      "onError": "continueErrorOutput"
+    },
+    {
+      "parameters": {
+        "resource": "video",
+        "operation": "upload",
+        "title": "={{ $('Parse Result').item.json.youtubeTitle }}",
+        "binaryPropertyName": "data",
+        "options": {
+          "categoryId": "1",
+          "description": "={{ $('Parse Result').item.json.youtubeDescription }}",
+          "privacyStatus": "public",
+          "regionCode": "IN"
+        }
+      },
+      "id": "b76bb221-37e2-4c66-b1fc-642cd35ec240",
+      "name": "Publish to YouTube",
+      "type": "n8n-nodes-base.youTube",
+      "typeVersion": 1,
+      "position": [
+        2800,
+        -112
+      ],
+      "credentials": {
+        "youTubeOAuth2Api": {
+          "id": "3F0ZRCP6Uwfe4Tan",
+          "name": "YouTube account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "url": "={{ $('Parse Result').item.json.video_url }}",
+        "options": {
+          "response": {
+            "responseFormat": "file"
+          }
+        }
+      },
+      "id": "a6205094-caa5-414e-b82a-fabdcbd72a93",
+      "name": "Download Video for YouTube",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        2576,
+        112
+      ]
+    },
+    {
+      "parameters": {
+        "chatId": "={{ $('Parse Result').item.json.chatId }}",
+        "text": "=🌟 *Mission Accomplished!*\n\n📖 *{{ $('Parse Result').item.json.mangaTitle }}* - Ch.{{ $('Parse Result').item.json.chapterNum }}\n\n✅ Published to Instagram!\n✅ Published to YouTube Shorts!\n\n🔄 Send another link anytime!",
+        "additionalFields": {
+          "parse_mode": "Markdown"
+        }
+      },
+      "id": "5b929309-314e-45f7-84ac-762fb1a16bbb",
+      "name": "Done",
+      "type": "n8n-nodes-base.telegram",
+      "typeVersion": 1.2,
+      "position": [
+        3024,
+        -112
+      ],
+      "webhookId": "29f95076-3bcf-43c0-9bae-fe1fe948ab8a",
+      "credentials": {
+        "telegramApi": {
+          "id": "WzY2whKO1vS85cge",
+          "name": "MangaBrainRotBot"
+        }
+      }
+    }
+  ],
+  "pinData": {},
+  "connections": {
+    "Telegram Trigger": {
+      "main": [
+        [
+          {
+            "node": "Filter Old Messages",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Filter Old Messages": {
+      "main": [
+        [
+          {
+            "node": "Is MangaDex?",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Is MangaDex?": {
+      "main": [
+        [
+          {
+            "node": "Extract Chapter ID",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Extract Chapter ID": {
+      "main": [
+        [
+          {
+            "node": "Start Notification",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Start Notification": {
+      "main": [
+        [
+          {
+            "node": "Initiate Generation",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Initiate Generation": {
+      "main": [
+        [
+          {
+            "node": "Wait",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Wait": {
+      "main": [
+        [
+          {
+            "node": "Get Result",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Get Result": {
+      "main": [
+        [
+          {
+            "node": "Parse Result",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Parse Result": {
+      "main": [
+        [
+          {
+            "node": "Video Ready",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Video Ready": {
+      "main": [
+        [
+          {
+            "node": "Publish to Instagram",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Publish to Instagram": {
+      "main": [
+        [
+          {
+            "node": "Download Video for YouTube",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Download Video for YouTube": {
+      "main": [
+        [
+          {
+            "node": "Publish to YouTube",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Publish to YouTube": {
+      "main": [
+        [
+          {
+            "node": "Done",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "active": true,
+  "settings": {
+    "executionOrder": "v1",
+    "availableInMCP": false
+  },
+  "versionId": "ab12bf7b-c58b-4c4f-ad36-352122bb9d1b",
+  "meta": {
+    "templateCredsSetupCompleted": true,
+    "instanceId": "403ce3682ca931f437b6dd8ae8086cb14a7dbf590c9eda5e445fae63931bc1c6"
+  },
+  "id": "OeoKqTV4Zbi6KuoB7CbDK",
+  "tags": [
+    {
+      "updatedAt": "2026-01-17T20:05:54.542Z",
+      "createdAt": "2026-01-17T20:05:54.542Z",
+      "id": "GBrTpmWTwRACnREN",
+      "name": "insta"
+    }
+  ]
+}
